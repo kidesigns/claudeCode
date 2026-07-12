@@ -5,7 +5,12 @@
   "main": "src/memory.js",
   "scripts": {
     "test": "node --test",
-    "example": "node examples/scrape-with-memory.js"
+    "example": "node examples/scrape-with-memory.js",
+    "pw": "playwright test",
+    "pw:headed": "PW_HEADED=1 playwright test",
+    "pw:all": "PW_BROWSERS=chromium,firefox,webkit playwright test",
+    "pw:auth": "PW_REUSE_AUTH=1 playwright test",
+    "pw:report": "playwright show-report"
   },
   "keywords": [
     "playwright",
@@ -15,5 +20,9 @@
     "storageState",
     "dedupe"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.61.1",
+    "dotenv": "^17.4.2"
+  }
 }

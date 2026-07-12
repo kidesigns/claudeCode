@@ -94,8 +94,52 @@ Returns a memory instance. `dir` defaults to `.memory`. Also exposes
 `.memory/` is git-ignored — it can hold cookies/tokens, so it should never be
 committed.
 
+## Running Playwright — configure it any way you like
+
+Everything is driven by env vars, so the **same knobs work locally and in CI**
+without editing code. Set them in a `.env` file (copy `.env.example`) or inline:
+
+```bash
+npx playwright test                                   # default: chromium, headless
+PW_HEADED=1 npx playwright test                       # visible browser
+PW_BROWSERS=chromium,firefox,webkit npx playwright test  # cross-browser
+PW_REUSE_AUTH=1 npx playwright test                   # log in once, reuse session
+PW_GREP='checkout' PW_RETRIES=3 npx playwright test   # filter + retries
+```
+
+Shortcuts are in `package.json` (`npm run pw`, `pw:headed`, `pw:all`, `pw:auth`).
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `PW_BROWSERS` | `chromium` | comma list: chromium/firefox/webkit |
+| `PW_HEADED` | `0` | show the browser window |
+| `PW_WORKERS` | auto | parallel workers |
+| `PW_RETRIES` | `0` (2 in CI) | retries per test |
+| `PW_BASE_URL` | – | base for `page.goto('/x')` |
+| `PW_TRACE` | `retain-on-failure` | trace mode |
+| `PW_REPORTER` | `list` (`github,html` in CI) | reporters |
+| `PW_GREP` | – | only run matching test titles |
+| `PW_REUSE_AUTH` | `0` | run login setup + reuse `storageState` |
+| `PW_AUTH_STATE` | `.memory/auth/main.storageState.json` | session file |
+
+See `.env.example` for the full annotated list.
+
+### In CI/CD (GitHub Actions)
+
+`.github/workflows/playwright.yml` runs on push/PR with defaults, **and** can be
+triggered manually from the Actions tab where you pick browsers, workers,
+retries, auth reuse, etc. — each input maps to the env vars above, so CI behaves
+exactly like your local runs. It also:
+
+- installs only the browsers you requested,
+- caches `.memory/` across runs (best-effort cross-run dedupe state),
+- uploads the HTML report as an artifact.
+
+Set `SITE_USER` / `SITE_PASS` as **repository secrets** for the login flow —
+credentials are never committed.
+
 ## Tests
 
 ```bash
-npm test        # Node's built-in test runner, no Playwright required
+npm test        # Node's built-in test runner for the memory layer (no Playwright)
 ```

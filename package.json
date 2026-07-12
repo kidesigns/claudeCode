@@ -1,0 +1,19 @@
+{
+  "name": "playwright-automation-memory",
+  "version": "0.1.0",
+  "description": "A JSON-backed memory/state layer for Playwright automations: persistent auth sessions, seen-item dedupe, and a facts/preferences store.",
+  "main": "src/memory.js",
+  "scripts": {
+    "test": "node --test",
+    "example": "node examples/scrape-with-memory.js"
+  },
+  "keywords": [
+    "playwright",
+    "automation",
+    "memory",
+    "state",
+    "storageState",
+    "dedupe"
+  ],
+  "license": "MIT"
+}

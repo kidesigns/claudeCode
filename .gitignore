@@ -1,0 +1,6 @@
+# Persisted runtime memory — may contain cookies/tokens, never commit it.
+.memory/
+
+# Node
+node_modules/
+npm-debug.log*

@@ -15,5 +15,8 @@
     "storageState",
     "dedupe"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "playwright": "^1.61.1"
+  }
 }

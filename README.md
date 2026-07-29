@@ -15,6 +15,10 @@ It remembers three things:
 Everything is stored as plain JSON under one directory (default `.memory/`),
 with atomic writes so an interrupted run never corrupts state.
 
+📖 **New here? Start with [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)** —
+install, first run, configuration, and CI/CD end to end. For how this compares
+to the Playwright MCP server, see [docs/CLI_VS_MCP.md](docs/CLI_VS_MCP.md).
+
 > **Note:** this was built as a reusable module. To add it to your existing
 > "playwright automation" project, copy `src/memory.js` in and follow the
 > wiring in `examples/scrape-with-memory.js`.

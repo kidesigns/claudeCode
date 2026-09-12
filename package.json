@@ -10,7 +10,8 @@
     "pw:headed": "PW_HEADED=1 playwright test",
     "pw:all": "PW_BROWSERS=chromium,firefox,webkit playwright test",
     "pw:auth": "PW_REUSE_AUTH=1 playwright test",
-    "pw:report": "playwright show-report"
+    "pw:report": "playwright show-report",
+    "sites": "node -e \"console.log(require('./lib/sites').discoverSites().map(s=>s.name).join('\\n')||'(none)')\""
   },
   "keywords": [
     "playwright",

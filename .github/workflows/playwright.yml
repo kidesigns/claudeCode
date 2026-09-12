@@ -10,6 +10,10 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
+      sites:
+        description: "Sites to run (comma list of folder names; blank = all)"
+        type: string
+        default: ""
       browsers:
         description: "Browsers (comma list): chromium,firefox,webkit"
         type: string
@@ -26,10 +30,6 @@ on:
         description: "Log in once and reuse the saved session"
         type: boolean
         default: false
-      base_url:
-        description: "Base URL to test against"
-        type: string
-        default: ""
       grep:
         description: "Only run tests matching this title regex"
         type: string
@@ -47,16 +47,19 @@ jobs:
     # Map workflow inputs -> the env vars playwright.config.js reads.
     # `inputs.*` is empty on push/PR, so each falls back to a default.
     env:
+      PW_SITES: ${{ inputs.sites || '' }}
       PW_BROWSERS: ${{ inputs.browsers || 'chromium' }}
       PW_WORKERS: ${{ inputs.workers || '' }}
       PW_RETRIES: ${{ inputs.retries || '2' }}
       PW_REUSE_AUTH: ${{ inputs.reuse_auth && '1' || '0' }}
-      PW_BASE_URL: ${{ inputs.base_url || '' }}
       PW_GREP: ${{ inputs.grep || '' }}
       PW_REPORTER: ${{ inputs.reporter || 'github,html' }}
-      # Credentials for the login setup project (only used when PW_REUSE_AUTH=1).
-      SITE_USER: ${{ secrets.SITE_USER }}
-      SITE_PASS: ${{ secrets.SITE_PASS }}
+      # Per-site base URLs and credentials (only the login sites need creds).
+      # Add one secret per site; names must match each sites/<site>/site.config.js.
+      ACME_BASE_URL: ${{ vars.ACME_BASE_URL }}
+      ACME_USER: ${{ secrets.ACME_USER }}
+      ACME_PASS: ${{ secrets.ACME_PASS }}
+      GLOBEX_BASE_URL: ${{ vars.GLOBEX_BASE_URL }}
 
     steps:
       - uses: actions/checkout@v4

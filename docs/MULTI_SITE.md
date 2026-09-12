@@ -4,12 +4,38 @@ This project runs end-to-end automation against several websites while keeping
 each site's **code, config, login, and memory fully separated**. You add a site
 by dropping a folder under `sites/` — there is no central list to maintain.
 
+- [Command cheat sheet](#command-cheat-sheet)
 - [How it's organized](#how-its-organized)
 - [Selecting which sites run](#selecting-which-sites-run)
 - [Adding a new site](#adding-a-new-site)
+- [Common recipes](#common-recipes)
+- [Debugging a site](#debugging-a-site)
 - [Per-site memory](#per-site-memory)
 - [Login per site](#login-per-site)
 - [CI/CD](#cicd)
+
+## Command cheat sheet
+
+| Goal | Command |
+| --- | --- |
+| List discovered sites | `npm run sites` |
+| List what would run (no browser) | `npx playwright test --list` |
+| Run everything (all sites, chromium) | `npm run pw` |
+| Run one site | `PW_SITES=acme npm run pw` |
+| Run several sites | `PW_SITES=acme,globex npm run pw` |
+| Run one generated project | `npx playwright test --project=acme-chromium` |
+| Cross-browser | `PW_BROWSERS=chromium,firefox,webkit npm run pw` |
+| Watch it happen (visible) | `PW_HEADED=1 npm run pw` |
+| Interactive UI mode | `npx playwright test --ui` |
+| Step-through debugger | `PW_HEADED=1 npx playwright test --debug` |
+| Only tests matching a title | `PW_GREP='checkout' npm run pw` |
+| Log in once per site, reuse | `PW_REUSE_AUTH=1 npm run pw` |
+| Open the last HTML report | `npm run pw:report` |
+| Open a saved trace | `npx playwright show-trace <trace.zip>` |
+| Memory-layer unit tests | `npm test` |
+
+Env knobs combine freely, e.g.
+`PW_SITES=acme PW_BROWSERS=firefox PW_HEADED=1 PW_REUSE_AUTH=1 npm run pw`.
 
 ## How it's organized
 
@@ -87,7 +113,94 @@ An unknown name fails fast with the list of known sites.
    `memoryForSite('widgetco')` for this site's auth/seen/facts.
 4. **Add its env vars** to `.env` (and as CI secrets/variables).
 
+5. **Verify discovery and wiring** before writing real selectors:
+   ```bash
+   npm run sites                               # widgetco should appear
+   PW_SITES=widgetco npx playwright test --list  # its project(s) should list
+   ```
+
 That's it — `npm run sites` will now list `widgetco` and it'll run with the rest.
+
+### Full example, end to end
+
+```bash
+# 1. scaffold
+cp -r sites/_template sites/widgetco
+
+# 2. set name + baseURL + login in the config
+#    (edit sites/widgetco/site.config.js — name: 'widgetco', WIDGETCO_BASE_URL, selectors)
+
+# 3. local env vars
+cat >> .env <<'ENV'
+WIDGETCO_BASE_URL=https://widgetco.internal.example
+WIDGETCO_USER=
+WIDGETCO_PASS=
+ENV
+
+# 4. confirm it's picked up
+npm run sites
+PW_SITES=widgetco npx playwright test --list
+
+# 5. run it (log in once, visible, chromium)
+PW_SITES=widgetco PW_REUSE_AUTH=1 PW_HEADED=1 npm run pw
+```
+
+For CI, add matching entries to `.github/workflows/playwright.yml` `env:` block
+and create the repo Variable/Secrets (see [CI/CD](#cicd)):
+
+```yaml
+WIDGETCO_BASE_URL: ${{ vars.WIDGETCO_BASE_URL }}
+WIDGETCO_USER: ${{ secrets.WIDGETCO_USER }}
+WIDGETCO_PASS: ${{ secrets.WIDGETCO_PASS }}
+```
+
+## Common recipes
+
+**Run just the site I'm actively working on, visibly:**
+```bash
+PW_SITES=acme PW_HEADED=1 npm run pw
+```
+
+**Run a single spec file / a single test:**
+```bash
+npx playwright test sites/acme/tests/dashboard.spec.js   # one file
+PW_GREP='new orders' npm run pw                          # by title
+```
+
+**Re-run only what failed last time:**
+```bash
+npx playwright test --last-failed
+```
+
+**Reset one site's memory** (force it to re-login / re-process everything):
+```bash
+rm -rf .memory/acme        # removes that site's auth + seen + facts only
+```
+
+**Run two sites in parallel across browsers:**
+```bash
+PW_SITES=acme,globex PW_BROWSERS=chromium,firefox PW_WORKERS=4 npm run pw
+```
+
+**See every generated project name** (useful for `--project`):
+```bash
+npx playwright test --list | grep -oE '\[[^]]+\]' | sort -u
+```
+
+## Debugging a site
+
+| Tool | Command | Use it for |
+| --- | --- | --- |
+| UI mode | `npx playwright test --ui` | time-travel through a run, pick sites/tests to re-run |
+| Inspector | `PW_HEADED=1 npx playwright test --debug` | step through actions, try selectors live |
+| Headed | `PW_HEADED=1 PW_SITES=acme npm run pw` | just watch the browser |
+| Trace | `PW_TRACE=on npm run pw` then `npx playwright show-trace` | post-mortem of a failure (DOM, network, console) |
+| Report | `npm run pw:report` | the HTML report from the last run |
+| Codegen | `npx playwright codegen https://acme.example.com` | record clicks to discover selectors for a new site |
+
+`codegen` is the fastest way to build a new site's login recipe and spec
+selectors — record the flow, then paste the generated selectors into that
+site's `site.config.js` / specs.
 
 ## Per-site memory
 

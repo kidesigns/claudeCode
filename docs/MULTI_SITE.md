@@ -121,6 +121,12 @@ An unknown name fails fast with the list of known sites.
 
 That's it — `npm run sites` will now list `widgetco` and it'll run with the rest.
 
+> **Placeholder sites auto-skip.** A site whose `baseURL` still points at a
+> reserved `example.(com|org|net)` domain (like the bundled `acme`/`globex`) is
+> treated as unconfigured: its specs **skip** via `isExampleSite()` (see
+> `lib/sites.js`), so CI stays green out of the box. The moment you set a real
+> `baseURL`, that site's specs run normally.
+
 ### Full example, end to end
 
 ```bash

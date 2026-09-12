@@ -15,6 +15,11 @@ It remembers three things:
 Everything is stored as plain JSON under one directory (default `.memory/`),
 with atomic writes so an interrupted run never corrupts state.
 
+📖 **New here? Start with [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)** —
+install, first run, configuration, and CI/CD end to end. For running several
+websites from one repo see [docs/MULTI_SITE.md](docs/MULTI_SITE.md); for how this
+compares to the Playwright MCP server see [docs/CLI_VS_MCP.md](docs/CLI_VS_MCP.md).
+
 > **Note:** this was built as a reusable module. To add it to your existing
 > "playwright automation" project, copy `src/memory.js` in and follow the
 > wiring in `examples/scrape-with-memory.js`.
@@ -94,8 +99,54 @@ Returns a memory instance. `dir` defaults to `.memory`. Also exposes
 `.memory/` is git-ignored — it can hold cookies/tokens, so it should never be
 committed.
 
+## Running Playwright — configure it any way you like
+
+Everything is driven by env vars, so the **same knobs work locally and in CI**
+without editing code. Set them in a `.env` file (copy `.env.example`) or inline:
+
+```bash
+npx playwright test                                   # all sites, chromium, headless
+PW_SITES=acme npx playwright test                     # just one site
+PW_HEADED=1 npx playwright test                       # visible browser
+PW_BROWSERS=chromium,firefox,webkit npx playwright test  # cross-browser
+PW_REUSE_AUTH=1 npx playwright test                   # log in once per site, reuse
+PW_GREP='checkout' PW_RETRIES=3 npx playwright test   # filter + retries
+```
+
+Shortcuts are in `package.json` (`npm run pw`, `pw:headed`, `pw:all`, `pw:auth`,
+`npm run sites` to list discovered sites).
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `PW_SITES` | all | comma list of site folders to run |
+| `PW_BROWSERS` | `chromium` | comma list: chromium/firefox/webkit |
+| `PW_HEADED` | `0` | show the browser window |
+| `PW_WORKERS` | auto | parallel workers |
+| `PW_RETRIES` | `0` (2 in CI) | retries per test |
+| `PW_TRACE` | `retain-on-failure` | trace mode |
+| `PW_REPORTER` | `list` (`github,html` in CI) | reporters |
+| `PW_GREP` | – | only run matching test titles |
+| `PW_REUSE_AUTH` | `0` | run each site's login setup + reuse `storageState` |
+
+Base URLs/credentials are **per site** (in `sites/<site>/site.config.js`). See
+`.env.example` for the full annotated list and [docs/MULTI_SITE.md](docs/MULTI_SITE.md).
+
+### In CI/CD (GitHub Actions)
+
+`.github/workflows/playwright.yml` runs on push/PR with defaults, **and** can be
+triggered manually from the Actions tab where you pick sites, browsers, workers,
+retries, auth reuse, etc. — each input maps to the env vars above, so CI behaves
+exactly like your local runs. It also:
+
+- installs only the browsers you requested,
+- caches `.memory/` across runs (best-effort cross-run dedupe state),
+- uploads the HTML report as an artifact.
+
+Add per-site **Variables** (`ACME_BASE_URL`, …) and **Secrets** (`ACME_USER`,
+`ACME_PASS`, …) in repo settings — credentials are never committed.
+
 ## Tests
 
 ```bash
-npm test        # Node's built-in test runner, no Playwright required
+npm test        # Node's built-in test runner for the memory layer (no Playwright)
 ```

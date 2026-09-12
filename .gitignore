@@ -1,6 +1,15 @@
 # Persisted runtime memory — may contain cookies/tokens, never commit it.
 .memory/
 
+# Local config (secrets/URLs) — commit .env.example instead.
+.env
+
+# Playwright artifacts
+playwright-report/
+test-results/
+/playwright/.cache/
+blob-report/
+
 # Node
 node_modules/
 npm-debug.log*

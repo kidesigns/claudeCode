@@ -1,0 +1,99 @@
+name: Playwright
+
+# Runs on pushes/PRs with defaults, OR on-demand from the Actions tab where you
+# can pick exactly how Playwright runs. Every input maps to the same env var the
+# local `.env` uses (see playwright.config.js), so CI and local behave identically.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      sites:
+        description: "Sites to run (comma list of folder names; blank = all)"
+        type: string
+        default: ""
+      browsers:
+        description: "Browsers (comma list): chromium,firefox,webkit"
+        type: string
+        default: chromium
+      workers:
+        description: "Parallel workers (blank = default)"
+        type: string
+        default: ""
+      retries:
+        description: "Retries per test"
+        type: string
+        default: "2"
+      reuse_auth:
+        description: "Log in once and reuse the saved session"
+        type: boolean
+        default: false
+      grep:
+        description: "Only run tests matching this title regex"
+        type: string
+        default: ""
+      reporter:
+        description: "Reporters (comma list)"
+        type: string
+        default: "github,html"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    # Map workflow inputs -> the env vars playwright.config.js reads.
+    # `inputs.*` is empty on push/PR, so each falls back to a default.
+    env:
+      PW_SITES: ${{ inputs.sites || '' }}
+      PW_BROWSERS: ${{ inputs.browsers || 'chromium' }}
+      PW_WORKERS: ${{ inputs.workers || '' }}
+      PW_RETRIES: ${{ inputs.retries || '2' }}
+      PW_REUSE_AUTH: ${{ inputs.reuse_auth && '1' || '0' }}
+      PW_GREP: ${{ inputs.grep || '' }}
+      PW_REPORTER: ${{ inputs.reporter || 'github,html' }}
+      # Per-site base URLs and credentials (only the login sites need creds).
+      # Add one secret per site; names must match each sites/<site>/site.config.js.
+      ACME_BASE_URL: ${{ vars.ACME_BASE_URL }}
+      ACME_USER: ${{ secrets.ACME_USER }}
+      ACME_PASS: ${{ secrets.ACME_PASS }}
+      GLOBEX_BASE_URL: ${{ vars.GLOBEX_BASE_URL }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      # Best-effort cross-run memory (seen/facts dedupe state). The cache can be
+      # evicted, so treat it as an optimization, not a guarantee.
+      - name: Restore memory
+        uses: actions/cache@v4
+        with:
+          path: .memory
+          key: pw-memory-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: |
+            pw-memory-${{ github.ref_name }}-
+
+      # Install only the browsers requested (comma list -> space list).
+      - name: Install browsers
+        run: |
+          BROWSERS="$(echo "${PW_BROWSERS}" | tr ',' ' ')"
+          npx playwright install --with-deps ${BROWSERS}
+
+      - name: Run Playwright
+        run: npx playwright test
+
+      - name: Upload report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
